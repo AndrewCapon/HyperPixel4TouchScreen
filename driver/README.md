@@ -20,7 +20,7 @@ display_rotate=0
                 interrupt-parent = <&gpio>;
                 interrupts = <27 2>;
                 touchscreen-inverted-x;
-		touchscreen-hyperpixel4;
+                touchscreen-hyperpixel4;
 	    };
         };
     };
@@ -44,7 +44,7 @@ display_rotate=1
                 interrupt-parent = <&gpio>;
                 interrupts = <27 2>;
                 touchscreen-swapped-x-y;
-		touchscreen-hyperpixel4;
+                touchscreen-hyperpixel4;
 	    };
         };
     };
@@ -68,7 +68,7 @@ display_rotate=2
                 interrupt-parent = <&gpio>;
                 interrupts = <27 2>;
                 touchscreen-inverted-y;
-		touchscreen-hyperpixel4;
+                touchscreen-hyperpixel4;
 	    };
         };
     };
