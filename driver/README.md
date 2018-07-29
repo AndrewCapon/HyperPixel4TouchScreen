@@ -1,12 +1,12 @@
 
 boot/config and hyperpixel4.dts fragments for different orientations:
 
-
-
-
 framebuffer_width=480
+
 framebuffer_height=800
+
 display_rotate=0
+
 
 
    fragment@3 {
