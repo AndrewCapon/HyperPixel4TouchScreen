@@ -1,10 +1,11 @@
 
 boot/config and hyperpixel4.dts fragments for different orientations:
 
+```
 framebuffer_width=480
 framebuffer_height=800
 display_rotate=0
-
+```
 
 
     fragment@3 {
@@ -25,10 +26,11 @@ display_rotate=0
     };
 
 
+```
 framebuffer_width=800
 framebuffer_height=480
 display_rotate=1
-
+```
 
     fragment@3 {
         target = <&i2c_gpio>;
@@ -48,10 +50,11 @@ display_rotate=1
     };
 
 
-
+```
 framebuffer_width=480
 framebuffer_height=800
 display_rotate=2
+```
 
     fragment@3 {
         target = <&i2c_gpio>;
@@ -71,10 +74,11 @@ display_rotate=2
     };
 
 
+```
 framebuffer_width=800
 framebuffer_height=480
 display_rotate=3
-
+```
 
     fragment@3 {
         target = <&i2c_gpio>;
@@ -94,4 +98,5 @@ display_rotate=3
 	    };
         };
     };
+
 
