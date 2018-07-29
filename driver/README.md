@@ -2,14 +2,12 @@
 boot/config and hyperpixel4.dts fragments for different orientations:
 
 framebuffer_width=480
-
 framebuffer_height=800
-
 display_rotate=0
 
 
 
-   fragment@3 {
+    fragment@3 {
         target = <&i2c_gpio>;
         __overlay__ {
             /* needed to avoid dtc warning */
@@ -25,7 +23,6 @@ display_rotate=0
 	    };
         };
     };
-
 
 
 framebuffer_width=800
