@@ -1,5 +1,5 @@
 
-ot/config and hyperpixel4.dts fragments for different orientations:
+boot/config and hyperpixel4.dts fragments for different orientations:
 
 
 framebuffer_width=480
