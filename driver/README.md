@@ -10,8 +10,7 @@ Added firmware writing of:
 	If included sets x2y flag on, otherwise x2y flag is off.
 	
 	
-E
-xample with touch screen offering 16 times resolution of lcd
+Example with touch screen offering 16 times resolution of lcd
 
 ```
 touchscreen-size-x = <7680>;
