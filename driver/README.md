@@ -1,16 +1,17 @@
-added firmware writing of:
+Added firmware writing of:
 
-touchscreen-size-x
+```touchscreen-size-x```
 	Sets the maximum x size (narrow edge)
 	
-touchscreen-size-y
+```touchscreen-size-y```
 	Sets the maximum Y size (long edge)
 	
-touchscreen-x2y
+```touchscreen-x2y```
 	If included sets x2y flag on, otherwise x2y flag is off.
 	
 	
-example with touch screen offering 16 times resolution of lcd
+E
+xample with touch screen offering 16 times resolution of lcd
 
 ```
 touchscreen-size-x = <7680>;
