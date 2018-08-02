@@ -1,7 +1,7 @@
 /*
  *  Driver for Goodix Touchscreens
  *
- *  Modified for Pimoroni Hyperpixel 4
+ *  Modified for writing X2Y, width and height for screens without rst/int pins
  *
  *  Copyright (c) 2014 Red Hat Inc.
  *  Copyright (c) 2015 K. Merker <merker@debian.org>
@@ -10,7 +10,7 @@
  *
  *  2010 - 2012 Goodix Technology.
  */
-
+#define DEBUG
 
 /*
  * This program is free software; you can redistribute it and/or modify it
@@ -53,9 +53,12 @@ struct goodix_ts_data {
 	struct completion firmware_loading_complete;
 	unsigned long irq_flags;
 
-	// are we a hyperpixel 4 screen.
-	bool isHyperpixel4;
+	bool X2Y;
+	bool requestedX2Y;
+	u16  requestedXSize;
+	u16  requestedYSize;
 };
+#define CHECK_BIT(var,pos) ((var) & (1<<(pos)))
 
 #define GOODIX_GPIO_INT_NAME		"irq"
 #define GOODIX_GPIO_RST_NAME		"reset"
@@ -82,6 +85,8 @@ struct goodix_ts_data {
 #define GOODIX_BUFFER_STATUS_TIMEOUT	20
 
 #define RESOLUTION_LOC		1
+#define RESOLUTION_LOC_X	1
+#define RESOLUTION_LOC_Y	3
 #define MAX_CONTACTS_LOC	5
 #define TRIGGER_LOC		6
 
@@ -117,7 +122,8 @@ static const struct dmi_system_id rotated_screen[] = {
 };
 
 
-static int updateHyperpixel4Firmware(struct goodix_ts_data *ts, u8 *data, bool bEnableX2Y);
+static int checkFirmware(struct goodix_ts_data *ts, u8 *config);
+
 
 
 /**
@@ -265,17 +271,7 @@ static void goodix_ts_report_touch(struct goodix_ts_data *ts, u8 *coor_data)
 	int input_y = get_unaligned_le16(&coor_data[3]);
 	int input_w = get_unaligned_le16(&coor_data[5]);
 
-	if(ts->isHyperpixel4)
-	{
-		/* Inversions have to happen after axis swapping */
-		if (ts->swapped_x_y)
-			swap(input_x, input_y);
-		if (ts->inverted_x)
-			input_x = ts->abs_x_max - input_x;
-		if (ts->inverted_y)
-			input_y = ts->abs_y_max - input_y;
-	}
-	else
+	if(ts->X2Y)
 	{
 		/* Inversions have to happen before axis swapping */
 		if (ts->inverted_x)
@@ -284,6 +280,16 @@ static void goodix_ts_report_touch(struct goodix_ts_data *ts, u8 *coor_data)
 			input_y = ts->abs_y_max - input_y;
 		if (ts->swapped_x_y)
 			swap(input_x, input_y);
+	}
+	else
+	{
+		/* Inversions have to happen after axis swapping */
+		if (ts->swapped_x_y)
+			swap(input_x, input_y);
+		if (ts->inverted_x)
+			input_x = ts->abs_x_max - input_x;
+		if (ts->inverted_y)
+			input_y = ts->abs_y_max - input_y;
 	}
 
 	input_mt_slot(ts->input_dev, id);
@@ -550,28 +556,16 @@ static void goodix_read_config(struct goodix_ts_data *ts)
 		return;
 	}
 
-	// if we are a hyperpixel 4 and X2Y flag bit 3
-	// of module switch 1 reg: 0x804d is set then
-	// we need to update firmware of screen
-	if(ts->isHyperpixel4)
-	{
-		dev_dbg(&ts->client->dev, "0x804d = %x", config[0x804d - GOODIX_REG_CONFIG_DATA]);
-//		updateHyperpixel4Firmware(ts, config, true);
+	dev_dbg(&ts->client->dev, "Current size = (%u, %u), X2Y = %u", ts->requestedXSize, ts->requestedYSize, ts->X2Y);
 
-		dev_info(&ts->client->dev, "Hyperpixel4 found");
-		dev_dbg(&ts->client->dev, "Checking X2Y flag");
-
-		if(config[0x804d - GOODIX_REG_CONFIG_DATA] & 0x08)
-		{
-			dev_info(&ts->client->dev, "Need to update Hyperpixel4 firmware");
-			updateHyperpixel4Firmware(ts, config, false);
-		}
-		else
-			dev_dbg(&ts->client->dev, "Hyperpixel4 Firmware already updated");
-	}
+	checkFirmware(ts, config);
 
 	ts->abs_x_max = get_unaligned_le16(&config[RESOLUTION_LOC]);
 	ts->abs_y_max = get_unaligned_le16(&config[RESOLUTION_LOC + 2]);
+	ts->X2Y = CHECK_BIT(config[0x804d - GOODIX_REG_CONFIG_DATA], 3);
+
+	dev_dbg(&ts->client->dev, "Current size = (%u, %u), X2Y = %u", ts->requestedXSize, ts->requestedYSize, ts->X2Y);
+
 	if (ts->swapped_x_y)
 		swap(ts->abs_x_max, ts->abs_y_max);
 	ts->int_trigger_type = config[TRIGGER_LOC] & 0x03;
@@ -709,10 +703,35 @@ static int goodix_request_input_dev(struct goodix_ts_data *ts)
 static int goodix_configure_dev(struct goodix_ts_data *ts)
 {
 	int error;
+	u32 sizeX, sizeY;
 
-	// are we a HyperPixel 4 screen
-	ts->isHyperpixel4 = device_property_read_bool(&ts->client->dev,
-								"touchscreen-hyperpixel4");
+	// X2Y setting
+	ts->requestedX2Y = device_property_read_bool(&ts->client->dev,
+								"touchscreen-x2y");
+
+	if(device_property_read_u32(&ts->client->dev, "touchscreen-size-x", &sizeX))
+	{
+		dev_dbg(&ts->client->dev, "touchscreen-size-x not found");
+		ts->requestedXSize = 0;
+	}
+	else
+	{
+		dev_dbg(&ts->client->dev, "touchscreen-size-x found %u", sizeX);
+		ts->requestedXSize = (u16)sizeX;
+	}
+
+	if(device_property_read_u32(&ts->client->dev, "touchscreen-size-y", &sizeY))
+	{
+		dev_dbg(&ts->client->dev, "touchscreen-size-y not found");
+		ts->requestedYSize = 0;
+	}
+	else
+	{
+		dev_dbg(&ts->client->dev, "touchscreen-size-y found %u", sizeY);
+		ts->requestedYSize = (u16)sizeY;
+	}
+
+	dev_dbg(&ts->client->dev, "requested size (%u, %u)", ts->requestedXSize, ts->requestedYSize);
 
 	ts->swapped_x_y = device_property_read_bool(&ts->client->dev,
 						    "touchscreen-swapped-x-y");
@@ -951,55 +970,108 @@ static int __maybe_unused goodix_resume(struct device *dev)
 //0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
 //0x7c,0x00
 
-static int updateHyperpixel4Firmware(struct goodix_ts_data *ts, u8 *data, bool bEnableX2Y)
+
+static int checkFirmware(struct goodix_ts_data *ts, u8 *config)
 {
-	int error;
-	struct firmware fw;
-	int check;
-	int rawCfgLlen;
-	int i;
-	u8 checkSum = 0;
+	int result = 0;
 
+	bool bUpdate = false;
+	bool bNewX2Y = ts->requestedX2Y;
+	bool bCurrentX2Y = CHECK_BIT(config[0x804d - GOODIX_REG_CONFIG_DATA], 3);
+	dev_info(&ts->client->dev, "Checking firmware");
 
-	if(bEnableX2Y)
-		data[0x804d - GOODIX_REG_CONFIG_DATA] |= 0x08;
-	else
-		data[0x804d - GOODIX_REG_CONFIG_DATA] &= 0xf7;
+	if(bUpdate)
+		dev_dbg(&ts->client->dev, "Check firmware update, new X2Y = %u, current X2Y = %u", bNewX2Y, bCurrentX2Y);
 
-	fw.data = data;
-	fw.size = GOODIX_CONFIG_911_LENGTH;
-	data[GOODIX_CONFIG_911_LENGTH-1]=1;	// flash fw flag
-
-	// calculate checksum
-	rawCfgLlen = GOODIX_CONFIG_911_LENGTH- 2;
-	for (i = 0; i < rawCfgLlen; i++)
-		checkSum += data[i];
-	checkSum = (~checkSum) + 1;
-	data[rawCfgLlen] = checkSum;
-
-	// check firmware is ok
-	check =  goodix_check_cfg(ts,  &fw);
-	dev_dbg(&ts->client->dev, "check firmware = %d\n", check);
-
-	if(!check)
+	if(ts->requestedXSize)
 	{
-		error = goodix_i2c_write(ts->client, GOODIX_REG_CONFIG_DATA, fw.data, fw.size);
-		if (error)
-			dev_err(&ts->client->dev, "Failed to write config data: (%d)",	error);
+		u16 xOrig;
+
+		xOrig = get_unaligned_le16(&config[RESOLUTION_LOC_X]);
+		dev_dbg(&ts->client->dev, "Requested X size = %u, orig = %u", ts->requestedXSize, xOrig);
+		if(ts->requestedXSize != xOrig)
+		{
+			dev_dbg(&ts->client->dev, "Requested X size needs firmware update");
+			put_unaligned_le16(ts->requestedXSize, &config[RESOLUTION_LOC_X]);
+			bUpdate = true;
+		}
+	}
+
+	if(ts->requestedYSize)
+	{
+		u16 yOrig;
+
+		yOrig = get_unaligned_le16(&config[RESOLUTION_LOC_Y]);
+		dev_dbg(&ts->client->dev, "Requested Y size = %u, orig = %u", ts->requestedYSize, yOrig);
+		if(ts->requestedYSize != yOrig)
+		{
+			dev_dbg(&ts->client->dev, "Requested Y size needs firmware update");
+			put_unaligned_le16(ts->requestedYSize, &config[RESOLUTION_LOC_Y]);
+			bUpdate = true;
+		}
+	}
+
+	if(bNewX2Y != bCurrentX2Y)
+	{
+		dev_dbg(&ts->client->dev, "Requested X2Y size needs firmware update");
+
+		if(bNewX2Y)
+			config[0x804d - GOODIX_REG_CONFIG_DATA] |= 0x08;
 		else
-			dev_info(&ts->client->dev, "Updated Hyperpixel4 firmware correctly.");
+			config[0x804d - GOODIX_REG_CONFIG_DATA] &= 0xf7;
 
-		/* Let the firmware reconfigure itself, so sleep for 10ms */
-		usleep_range(10000, 11000);
+		bUpdate = true;
+	}
 
-		return 0;
+	if(bUpdate)
+	{
+		int error;
+		struct firmware fw;
+		int check;
+		int rawCfgLlen;
+		int i;
+		u8 checkSum = 0;
+
+		dev_info(&ts->client->dev, "Updateing firmware");
+
+		fw.data = config;
+		fw.size = GOODIX_CONFIG_911_LENGTH;
+		config[GOODIX_CONFIG_911_LENGTH-1]=1;	// flash fw flag
+
+		// calculate checksum
+		rawCfgLlen = GOODIX_CONFIG_911_LENGTH- 2;
+		for (i = 0; i < rawCfgLlen; i++)
+			checkSum += config[i];
+		checkSum = (~checkSum) + 1;
+		config[rawCfgLlen] = checkSum;
+
+		// check firmware is ok
+		check =  goodix_check_cfg(ts,  &fw);
+
+		if(!check)
+		{
+			error = goodix_i2c_write(ts->client, GOODIX_REG_CONFIG_DATA, fw.data, fw.size);
+			if (error)
+				dev_err(&ts->client->dev, "Failed to write config data: (%d)",	error);
+			else
+				dev_info(&ts->client->dev, "Updated firmware correctly.");
+
+
+			/* Let the firmware reconfigure itself, so sleep for 10ms */
+			usleep_range(10000, 11000);
+		}
+		else
+		{
+			dev_err(&ts->client->dev, "Firmware data is invalid.");
+			result = 1;
+		}
 	}
 	else
-	{
-		dev_err(&ts->client->dev, "Firmware data is invalid.");
-		return 1;
-	}
+		dev_dbg(&ts->client->dev, "Firmware already updated with correct values");
+
+	return result;
 }
+
 
 
 static SIMPLE_DEV_PM_OPS(goodix_pm_ops, goodix_suspend, goodix_resume);
