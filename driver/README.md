@@ -1,13 +1,14 @@
 
-ot/config and hyperpixel4.dts fragments for different orientations:
+boot/config and hyperpixel4.dts fragments for different orientations:
 
-
+```
 framebuffer_width=480
 framebuffer_height=800
 display_rotate=0
+```
 
 
-   fragment@3 {
+    fragment@3 {
         target = <&i2c_gpio>;
         __overlay__ {
             /* needed to avoid dtc warning */
@@ -19,17 +20,17 @@ display_rotate=0
                 interrupt-parent = <&gpio>;
                 interrupts = <27 2>;
                 touchscreen-inverted-x;
-		touchscreen-hyperpixel4;
+                touchscreen-hyperpixel4;
 	    };
         };
     };
 
 
-
+```
 framebuffer_width=800
 framebuffer_height=480
 display_rotate=1
-
+```
 
     fragment@3 {
         target = <&i2c_gpio>;
@@ -43,16 +44,17 @@ display_rotate=1
                 interrupt-parent = <&gpio>;
                 interrupts = <27 2>;
                 touchscreen-swapped-x-y;
-		touchscreen-hyperpixel4;
+                touchscreen-hyperpixel4;
 	    };
         };
     };
 
 
-
+```
 framebuffer_width=480
 framebuffer_height=800
 display_rotate=2
+```
 
     fragment@3 {
         target = <&i2c_gpio>;
@@ -66,16 +68,17 @@ display_rotate=2
                 interrupt-parent = <&gpio>;
                 interrupts = <27 2>;
                 touchscreen-inverted-y;
-		touchscreen-hyperpixel4;
+                touchscreen-hyperpixel4;
 	    };
         };
     };
 
 
+```
 framebuffer_width=800
 framebuffer_height=480
 display_rotate=3
-
+```
 
     fragment@3 {
         target = <&i2c_gpio>;
@@ -95,4 +98,5 @@ display_rotate=3
 	    };
         };
     };
+
 
