@@ -10,7 +10,7 @@
  *
  *  2010 - 2012 Goodix Technology.
  */
-#define DEBUG
+//#define DEBUG
 
 /*
  * This program is free software; you can redistribute it and/or modify it
@@ -57,7 +57,11 @@ struct goodix_ts_data {
 	bool requestedX2Y;
 	u16  requestedXSize;
 	u16  requestedYSize;
+	u8	 requestedRefreshRate;
 };
+
+
+
 #define CHECK_BIT(var,pos) ((var) & (1<<(pos)))
 
 #define GOODIX_GPIO_INT_NAME		"irq"
@@ -123,7 +127,6 @@ static const struct dmi_system_id rotated_screen[] = {
 
 
 static int checkFirmware(struct goodix_ts_data *ts, u8 *config);
-
 
 
 /**
@@ -298,6 +301,8 @@ static void goodix_ts_report_touch(struct goodix_ts_data *ts, u8 *coor_data)
 	input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, input_y);
 	input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, input_w);
 	input_report_abs(ts->input_dev, ABS_MT_WIDTH_MAJOR, input_w);
+
+
 }
 
 /**
@@ -341,6 +346,7 @@ static void goodix_process_events(struct goodix_ts_data *ts)
 static irqreturn_t goodix_ts_irq_handler(int irq, void *dev_id)
 {
 	struct goodix_ts_data *ts = dev_id;
+
 
 	goodix_process_events(ts);
 
@@ -556,7 +562,7 @@ static void goodix_read_config(struct goodix_ts_data *ts)
 		return;
 	}
 
-	dev_dbg(&ts->client->dev, "Current size = (%u, %u), X2Y = %u", ts->requestedXSize, ts->requestedYSize, ts->X2Y);
+	dev_dbg(&ts->client->dev, "Current size = (%u, %u), X2Y = %u, refresh = %u", ts->requestedXSize, ts->requestedYSize, ts->X2Y, ts->requestedRefreshRate);
 
 	checkFirmware(ts, config);
 
@@ -564,7 +570,7 @@ static void goodix_read_config(struct goodix_ts_data *ts)
 	ts->abs_y_max = get_unaligned_le16(&config[RESOLUTION_LOC + 2]);
 	ts->X2Y = CHECK_BIT(config[0x804d - GOODIX_REG_CONFIG_DATA], 3);
 
-	dev_dbg(&ts->client->dev, "Current size = (%u, %u), X2Y = %u", ts->requestedXSize, ts->requestedYSize, ts->X2Y);
+	dev_dbg(&ts->client->dev, "Current size = (%u, %u), X2Y = %u, refresh = %u", ts->requestedXSize, ts->requestedYSize, ts->X2Y, ts->requestedRefreshRate);
 
 	if (ts->swapped_x_y)
 		swap(ts->abs_x_max, ts->abs_y_max);
@@ -703,11 +709,22 @@ static int goodix_request_input_dev(struct goodix_ts_data *ts)
 static int goodix_configure_dev(struct goodix_ts_data *ts)
 {
 	int error;
-	u32 sizeX, sizeY;
+	u32 sizeX, sizeY, refreshRate;
 
 	// X2Y setting
 	ts->requestedX2Y = device_property_read_bool(&ts->client->dev,
 								"touchscreen-x2y");
+
+	if(device_property_read_u32(&ts->client->dev, "touchscreen-refresh-rate", &refreshRate))
+	{
+		dev_dbg(&ts->client->dev, "touchscreen-refresh-rate not found");
+		ts->requestedRefreshRate = 5;
+	}
+	else
+	{
+		dev_dbg(&ts->client->dev, "touchscreen-refresh-rate found %u", sizeX);
+		ts->requestedRefreshRate = (u8)refreshRate;
+	}
 
 	if(device_property_read_u32(&ts->client->dev, "touchscreen-size-x", &sizeX))
 	{
@@ -828,6 +845,8 @@ static int goodix_ts_probe(struct i2c_client *client,
 		dev_err(&client->dev, "Read version failed.\n");
 		return error;
 	}
+
+
 
 	ts->cfg_len = goodix_get_cfg_len(ts->id);
 
@@ -978,10 +997,17 @@ static int checkFirmware(struct goodix_ts_data *ts, u8 *config)
 	bool bUpdate = false;
 	bool bNewX2Y = ts->requestedX2Y;
 	bool bCurrentX2Y = CHECK_BIT(config[0x804d - GOODIX_REG_CONFIG_DATA], 3);
-	dev_info(&ts->client->dev, "Checking firmware");
 
-	if(bUpdate)
-		dev_dbg(&ts->client->dev, "Check firmware update, new X2Y = %u, current X2Y = %u", bNewX2Y, bCurrentX2Y);
+	u8 currentRefreshRate = config[0x8056 - GOODIX_REG_CONFIG_DATA];
+
+
+	dev_info(&ts->client->dev, "Checking firmware");
+	if(ts->requestedRefreshRate != currentRefreshRate)
+	{
+		dev_dbg(&ts->client->dev, "Requested refresh rate = %u, orig = %u", ts->requestedRefreshRate, currentRefreshRate);
+		config[0x8056 - GOODIX_REG_CONFIG_DATA] =  (config[0x8056 - GOODIX_REG_CONFIG_DATA] & 0xF0) +  (ts->requestedRefreshRate & 0x0F);
+		bUpdate = true;
+	}
 
 	if(ts->requestedXSize)
 	{
@@ -1071,7 +1097,6 @@ static int checkFirmware(struct goodix_ts_data *ts, u8 *config)
 
 	return result;
 }
-
 
 
 static SIMPLE_DEV_PM_OPS(goodix_pm_ops, goodix_suspend, goodix_resume);
