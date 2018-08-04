@@ -1,3 +1,25 @@
+Added firmware writing of:
+
+```touchscreen-size-x```
+	Sets the maximum x size (narrow edge)
+	
+```touchscreen-size-y```
+	Sets the maximum Y size (long edge)
+	
+```touchscreen-x2y```
+	If included sets x2y flag on, otherwise x2y flag is off.
+	
+	
+Example with touch screen offering 16 times resolution of lcd
+
+```
+touchscreen-size-x = <7680>;
+touchscreen-size-y = <12800>;
+```
+
+
+
+
 
 boot/config and hyperpixel4.dts fragments for different orientations:
 
@@ -20,7 +42,6 @@ display_rotate=0
                 interrupt-parent = <&gpio>;
                 interrupts = <27 2>;
                 touchscreen-inverted-x;
-                touchscreen-hyperpixel4;
 	    };
         };
     };
@@ -44,7 +65,6 @@ display_rotate=1
                 interrupt-parent = <&gpio>;
                 interrupts = <27 2>;
                 touchscreen-swapped-x-y;
-                touchscreen-hyperpixel4;
 	    };
         };
     };
@@ -68,7 +88,6 @@ display_rotate=2
                 interrupt-parent = <&gpio>;
                 interrupts = <27 2>;
                 touchscreen-inverted-y;
-                touchscreen-hyperpixel4;
 	    };
         };
     };
@@ -94,7 +113,6 @@ display_rotate=3
                 touchscreen-inverted-x;
                 touchscreen-inverted-y;
                 touchscreen-swapped-x-y;
-                touchscreen-hyperpixel4;
 	    };
         };
     };
