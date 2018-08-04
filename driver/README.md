@@ -9,6 +9,10 @@ Added firmware writing of:
 ```touchscreen-x2y```
 	If included sets x2y flag on, otherwise x2y flag is off.
 	
+```touchscreen-refresh-rate```
+	Sets the refresh rate, range 0-15ms. This is added to the 5ms overhead of the screen giving a range 5-20ms.
+	Default is 5 giving 10ms refresh rate.
+	Setting this higher drastically reduces cpu load but increases lag, setting lower decreases lag and increases cpu load.
 	
 Example with touch screen offering 16 times resolution of lcd
 
