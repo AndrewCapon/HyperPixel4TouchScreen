@@ -46,7 +46,6 @@
                 reg = <0x5d>;
                 interrupt-parent = <&gpio>;
                 interrupts = <27 2>;
-                touchscreen-swapped-x-y;
                 touchscreen-hyperpixel4;
 	    };
         };
@@ -61,11 +60,38 @@
             };
         };
     };
+    /* display_lcd_rotate=2 */
+    /* Portrait, USB ports on bottom */
     fragment@5 {
         target = <&ft6236>;
+        __dormant__ {
+            touchscreen-inverted-y;
+        };
+    };
+    /* display_lcd_rotate=0 */
+    /* Portrait, USB ports on top */
+    fragment@6 {
+        target = <&ft6236>;
+        __dormant__ {
+            touchscreen-inverted-x;
+        };
+    };
+    /* display_lcd_rotate=3 */
+    /* Landscape, USB ports on right */
+    fragment@7 {
+        target = <&ft6236>;
         __overlay__ {
+            touchscreen-swapped-x-y;
             touchscreen-inverted-x;
             touchscreen-inverted-y;
+        };
+    };
+    /* display_lcd_rotate=1 */
+    /* Landscape, USB ports on left */
+    fragment@8 {
+        target = <&ft6236>;
+        __dormant__ {
+            touchscreen-swapped-x-y;
         };
     };
     __symbols__ {
@@ -83,7 +109,11 @@
         gpio = "/fragment@1:target:0";
     };
     __overrides__ {
-        rotate = <0>,"-5";
+        rotate = <0>,"-5-7-8+6";
+        rotate_0 = <0>,"-5-7-8+6";
+        rotate_1 = <0>,"-5-6-7+8";
+        rotate_2 = <0>,"-6-7-8+5";
+        rotate_3 = <0>,"-5-6-8+7";
     };
 };
 
