@@ -1,3 +1,26 @@
+# HyperPixel4 Goodix Touchscreen Driver
+
+## Installing
+
+### Users
+
+Install from the .deb file available in releases:
+
+```
+sudo dpkg -i hyperpixel4-goodix-dkms_1.0_all.deb
+```
+
+### Developers
+
+To build and install the kernel module, you need dkms:
+
+```
+sudo apt install raspberrypi-kernel-headers dkms
+cd driver
+sudo ln -s /full/path/to/goodix-1.0 /usr/src/goodix-1.0
+sudo dkms install goodix/1.0
+```
+
 Added firmware writing of:
 
 ```touchscreen-size-x```
