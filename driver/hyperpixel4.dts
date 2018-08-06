@@ -46,8 +46,6 @@
                 reg = <0x5d>;
                 interrupt-parent = <&gpio>;
                 interrupts = <27 2>;
-                touchscreen-inverted-x;
-                touchscreen-inverted-y;
                 touchscreen-swapped-x-y;
                 touchscreen-hyperpixel4;
 	    };
@@ -61,6 +59,13 @@
                 gpios = <&gpio 19 0>;
                 default-on;
             };
+        };
+    };
+    fragment@5 {
+        target = <&ft6236>;
+        __overlay__ {
+            touchscreen-inverted-x;
+            touchscreen-inverted-y;
         };
     };
     __symbols__ {
