@@ -47,6 +47,8 @@
                 interrupt-parent = <&gpio>;
                 interrupts = <27 2>;
                 touchscreen-hyperpixel4;
+                touchscreen-size-x = <800>;
+                touchscreen-size-y = <480>;
 	    };
         };
     };
