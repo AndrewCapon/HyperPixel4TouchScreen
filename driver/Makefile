@@ -9,3 +9,6 @@ test:
 
 init:
 	gcc -o hyperpixel4-init -static hyperpixel4-init.c -lbcm2835
+
+deb:
+	DEB_BUILD_ARCH=all dkms mkdeb goodix/1.0
