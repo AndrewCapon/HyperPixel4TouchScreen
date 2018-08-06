@@ -68,6 +68,8 @@
         target = <&ft6236>;
         __dormant__ {
             touchscreen-inverted-y;
+            touchscreen-size-x = <480>;
+            touchscreen-size-y = <800>;
         };
     };
     /* display_lcd_rotate=0 */
@@ -76,6 +78,8 @@
         target = <&ft6236>;
         __dormant__ {
             touchscreen-inverted-x;
+            touchscreen-size-x = <480>;
+            touchscreen-size-y = <800>;
         };
     };
     /* display_lcd_rotate=3 */
