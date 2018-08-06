@@ -1,3 +1,36 @@
+# HyperPixel4 Goodix Touchscreen Driver
+
+## Installing
+
+### Users
+
+Install from the .deb file available in releases:
+
+```
+sudo dpkg -i hyperpixel4-goodix-dkms_1.0_all.deb
+```
+HyperPixel4's touchscreen can be rotated with the following options:
+
+* `dtoverlay=hyperpixel4:rotate_0` - Portrait, USB ports on top
+* `dtoverlay=hyperpixel4:rotate_1` - Landscape, USB ports on left
+* `dtoverlay=hyperpixel4:rotate_2` - Portrait, USB ports underneath
+* `dtoverlay=hyperpixel4:rotate_3` - Landscape, USB ports on right
+
+These all match the number you supply to `display_lcd_rotate=`.
+
+Note: both Portrait orientations must have `framebuffer_width=480` and `framebuffer_height=800` specified instead of the defaults in `/boot/config.txt`.
+
+### Developers
+
+To build and install the kernel module, you need dkms:
+
+```
+sudo apt install raspberrypi-kernel-headers dkms
+cd driver
+sudo ln -s /full/path/to/goodix-1.0 /usr/src/goodix-1.0
+sudo dkms install goodix/1.0
+```
+
 Added firmware writing of:
 
 ```touchscreen-size-x```
